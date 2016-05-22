@@ -174,10 +174,11 @@ public final class MyWebServer {
 		for(;;) {
                     Socket connectionSocket = serverSocket.accept();
                     Thread t = new Thread(new WorkerRunnable(connectionSocket));
+                    requestTask task = new requestTask(System.nanoTime(),"just a name",t,1);
                     //t.start();
                     System.out.println("This step is reached");
                     System.out.println("Current thread ID: "+t.getId());
-                    manager.insertTask(t);
+                    manager.insertTask(task);
 
 		}
 	}
