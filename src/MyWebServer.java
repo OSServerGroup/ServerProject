@@ -7,6 +7,9 @@ import javax.tools.FileObject;
 
 import java.text.SimpleDateFormat;
 import java.nio.file.*;
+import java.util.concurrent.locks.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public final class MyWebServer {
 
@@ -158,28 +161,37 @@ public final class MyWebServer {
 
 	public static void main(String args[]) throws Exception {
 
-		int i=0;
-		for (i=0; i<args.length; i++) {
-			System.out.println(" args :" + args[i]);
-
-		}
-		PORT = Integer.valueOf(args[3]);
-		FILEPATH = args[1];
-		ServerSocket serverSocket = new ServerSocket(PORT);
-
-		System.out.println("Listening to connection..");
-
+//		int i=0;
+//		for (i=0; i<args.length; i++) {
+//			System.out.println(" args :" + args[i]);
+//
+//		}
+//		PORT = Integer.valueOf(args[3]);
+//		FILEPATH = args[1];
+//		ServerSocket serverSocket = new ServerSocket(PORT);
+//
+//		System.out.println("Listening to connection..");
+//
+//                requestManager manager = new requestManager();
+//                manager.start();
+//		for(;;) {
+//                    Socket connectionSocket = serverSocket.accept();
+//                    Thread t = new Thread(new WorkerRunnable(connectionSocket));
+//                    requestTask task = new requestTask(System.nanoTime(),"just a name",t,1);
+//                    //t.start();
+//                    System.out.println("This step is reached");
+//                    System.out.println("Current thread ID: "+t.getId());
+//                    manager.insertTask(task);
+//
+//		}
+                Lock lock = new ReentrantLock();
+                printStuff t = new printStuff(lock);
+                requestTask task = new requestTask(System.nanoTime(),"print stuff task",t,1);
                 requestManager manager = new requestManager();
                 manager.start();
-		for(;;) {
-                    Socket connectionSocket = serverSocket.accept();
-                    Thread t = new Thread(new WorkerRunnable(connectionSocket));
-                    requestTask task = new requestTask(System.nanoTime(),"just a name",t,1);
-                    //t.start();
-                    System.out.println("This step is reached");
-                    System.out.println("Current thread ID: "+t.getId());
-                    manager.insertTask(task);
-
-		}
+                manager.insertTask(task);
 	}
+        
+
+
 }

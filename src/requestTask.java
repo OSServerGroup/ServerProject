@@ -22,11 +22,11 @@ public class requestTask implements Callable<String>{
     protected long responseTime;
     
     int priority;
-    Thread taskThread;
+    printStuff taskThread;
     String name;
     
     
-    protected requestTask(long arrivalTime,String name,Thread t,int priority){
+    protected requestTask(long arrivalTime,String name,printStuff t,int priority){
         this.arrivalTime = arrivalTime;
         this.name = name;
         this.priority = priority;

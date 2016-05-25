@@ -66,20 +66,25 @@ public class requestManager implements Runnable{
         if(this.taskQueue.size()!=0){
             try{
                 this.currentTask = taskQueue.poll();
-
+                
                 ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
                 //Runnable r = new Runnable(){};
-
-            
-                Future<String> future = executor.submit(this.currentTask);
-                System.out.println("sleeping task begins");
-                System.out.println(future.get(TIMEQUANTUM*100000, TimeUnit.NANOSECONDS));
+                this.currentTask.taskThread.start();
+                Future<String> future = executor.submit(new SleepTask());
+                System.out.println(future.get(TIMEQUANTUM*1, TimeUnit.NANOSECONDS));
                 
             }catch(Exception e){
-                e.printStackTrace();
+                //e.printStackTrace();
                 System.out.println("Times out!");
-                this.currentTask.wait();
-                this.taskQueue.add(this.currentTask);
+                synchronized (this.currentTask.taskThread.lock){
+                    this.currentTask.taskThread.lock.lock();
+                }
+                this.currentTask.taskThread.interrupt();
+                //this.taskQueue.add(this.currentTask);
+                System.out.println("the action of locking is done");
+                synchronized (this.currentTask.taskThread.lock){
+                    this.currentTask.taskThread.lock.notify();
+                }
                 System.out.println("queue size: "+this.taskQueue.size());
             }
         
@@ -110,20 +115,21 @@ public class requestManager implements Runnable{
         return "Ready!";
         }
     }
-    class SleepTask implements Runnable{
+    */
+    class SleepTask implements Callable<String>{
         
         @Override
-        public void run(){
+        public String call(){
             try{
                 this.wait(5000);
             }catch(Exception e){
                 e.printStackTrace();
             }
-            
+            return "done";
 
             //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
         }
 
-    }*/
+    }
     
 }
