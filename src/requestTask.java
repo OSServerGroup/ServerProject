@@ -22,6 +22,7 @@ public class requestTask implements Callable<String>{
     protected long responseTime;
     
     int priority;
+    //WorkerThread taskThread;
     printStuff taskThread;
     String name;
     

@@ -17,32 +17,36 @@ import java.util.logging.Logger;
 public class printStuff extends Thread{
 
     public Lock lock;
+    //public boolean ready;
     
-    printStuff(Lock lock){
+    printStuff(){
         this.lock = new ReentrantLock();
+        //this.ready = true;
     }
     
     public void run() {
         //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
         System.out.println();
-        for(int i=0;i<1000;i++){
-            try{
-                if(this.isInterrupted()){
-                    System.out.println("interrupted");
-                    synchronized (this.lock){
-                        this.lock.wait();
-                    }
-                    
-                    System.out.println("unlocked");
-                    continue;
-                }
+        for(int i=0;i<500;i++){
+            synchronized (this){
+                try{
+                    if(Thread.currentThread().isInterrupted()){
 
-                System.out.print(" "+i+" ");
-            }
-            catch(InterruptedException e){
-                System.out.println("waiting");
+                    }
+
+                    System.out.print(" "+i+" ");
+                    
+                }
+                catch(Exception e){                
+                    e.printStackTrace();
+                    //System.out.println("waiting");
+                    
+                    
+                }
             }
         }
     }
+    
+    
 
 }

@@ -8,15 +8,15 @@ import java.util.concurrent.*;
 
 public class requestManager implements Runnable{
 
-    public PriorityQueue<requestTask> taskQueue;
+    public PriorityQueue<InterruptibleRequestHandler> taskQueue;
     public Thread managerThread;
-    public requestTask currentTask;
-    private final long TIMEQUANTUM = 1;
+    public InterruptibleRequestHandler currentTask;
+    private final long TIMEQUANTUM = 100;
 
     public requestManager(){
-        this.taskQueue = new PriorityQueue<requestTask>();
+        this.taskQueue = new PriorityQueue<InterruptibleRequestHandler>();
     }
-    public void insertTask(requestTask task) throws Exception{
+    public void insertTask(InterruptibleRequestHandler task) throws Exception{
         try{
             this.taskQueue.add(task);
             System.out.println("New Task Added");
@@ -36,7 +36,6 @@ public class requestManager implements Runnable{
     }
     public void run(){
         //FIFO Scheduling
-        System.out.println("Run method called");
         while(true){
             try{
                //FIFO(taskQueue);
@@ -47,21 +46,21 @@ public class requestManager implements Runnable{
         }
 
     }
-    protected void FIFO(PriorityQueue<requestTask> taskQueue) throws InterruptedException{
+    protected void FIFO(PriorityQueue<InterruptibleRequestHandler> taskQueue) throws InterruptedException{
         System.out.print("");
         if(this.taskQueue.size()!=0){
             System.out.println("Polling Queue");
             this.currentTask = taskQueue.poll();
-            System.out.println("Thread: "+this.currentTask.taskThread.getId()+" started");
-            this.currentTask.taskThread.start();
+            this.currentTask.start();
+            System.out.println("Thread: "+this.currentTask.t.getId()+" started");
             long start = System.nanoTime();
 
-            this.currentTask.taskThread.join();
-            System.out.println("Task: "+this.currentTask.taskThread.getId()+" finished");
+            this.currentTask.t.join();
+            System.out.println("Task: "+this.currentTask.t.getId()+" finished");
             System.out.println("Took: "+(System.nanoTime()-start)+" ns");
         }
     }
-    protected void RoundRobbin(PriorityQueue<requestTask> taskQueue) throws InterruptedException{
+    protected void RoundRobbin(PriorityQueue<InterruptibleRequestHandler> taskQueue) throws Exception{
         System.out.print("");
         if(this.taskQueue.size()!=0){
             try{
@@ -69,23 +68,37 @@ public class requestManager implements Runnable{
                 
                 ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
                 //Runnable r = new Runnable(){};
-                this.currentTask.taskThread.start();
+                this.currentTask.start();
                 Future<String> future = executor.submit(new SleepTask());
-                System.out.println(future.get(TIMEQUANTUM*1, TimeUnit.NANOSECONDS));
+                System.out.println(future.get(TIMEQUANTUM*1, TimeUnit.MILLISECONDS));
                 
             }catch(Exception e){
                 //e.printStackTrace();
                 System.out.println("Times out!");
-                synchronized (this.currentTask.taskThread.lock){
-                    this.currentTask.taskThread.lock.lock();
+                this.currentTask.t.interrupt();
+                //this.currentTask.t.join();
+                if(!this.currentTask.over){
+                    insertTask(this.currentTask);
                 }
-                this.currentTask.taskThread.interrupt();
-                //this.taskQueue.add(this.currentTask);
-                System.out.println("the action of locking is done");
-                synchronized (this.currentTask.taskThread.lock){
-                    this.currentTask.taskThread.lock.notify();
-                }
-                System.out.println("queue size: "+this.taskQueue.size());
+//                synchronized (this.currentTask.taskThread){
+//                    
+//                
+//                    this.currentTask.taskThread.interrupt();
+//                }
+//                //this.taskQueue.add(this.currentTask);
+//                //System.out.println("the action of locking is done");
+//                Thread.sleep(3000);
+//                //this.currentTask.taskThread.ready = true;
+//                synchronized (this.currentTask.taskThread){
+//                    //this.currentTask.taskThread.lock.unlock();
+//                    //this.currentTask.taskThread.wakeUp();
+//                    
+//                    //this.currentTask.taskThread.notify();
+//                    //this.currentTask.taskThread.ready = true;
+//                    //this.currentTask.taskThread.notify();
+//                }
+//                System.out.println("\nnotified");
+//                System.out.println("queue size: "+this.taskQueue.size());
             }
         
         }
@@ -121,7 +134,8 @@ public class requestManager implements Runnable{
         @Override
         public String call(){
             try{
-                this.wait(5000);
+                Thread.sleep(5000);
+                
             }catch(Exception e){
                 e.printStackTrace();
             }

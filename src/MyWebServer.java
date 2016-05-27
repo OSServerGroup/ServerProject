@@ -38,38 +38,40 @@ public final class MyWebServer {
 	}
 
 	private static void response(String inString, DataOutputStream out,String time) throws Exception {
-		String method = inString.substring(0, inString.indexOf("/")-1);
+		long startTime = System.nanoTime();
+                String method = inString.substring(0, inString.indexOf("/")-1);
 		//String version = inString.substring(inString.indexOf("/")+2, inString.lastIndexOf("/")+4);
 		String file = inString.substring(inString.indexOf("/")+1, inString.lastIndexOf("/")-5);
-		if(file.equals(""))
-			file = "index.html";
+//		if(file.equals(""))
+//			file = "index.html";
 		String mime = file.substring(file.indexOf(".")+1);
 
 		//Return if file contains potentialy bad string
-		if(file. contains(";") || file.contains("*"))	{
-			System.out.println(" (Drop Connection : Bad Request)");
-			return;
-		}
+//		if(file. contains(";") || file.contains("*"))	{
+//			System.out.println(" (Drop Connection : Bad Request)");
+//			return;
+//		}
 		// Return if trying to load file outside of web server root
-		Path path = Paths.get(FILEPATH, file);
-		if(!path.startsWith(FILEPATH)) {
-			System.out.println(" Drop connection ");
-			return;
-		}
+//		Path path = Paths.get(FILEPATH, file);
+//		if(!path.startsWith(FILEPATH)) {
+//			System.out.println(" Drop connection ");
+//			return;
+//		}
 
-		if (method.equals("POST")) {
-			String responseString = "400 Bad Request";
-			display("400", "html", responseString.length(), out, time);
-			out.write(responseString.getBytes());
-			return;
-		}
+//		if (method.equals("POST")) {
+//			String responseString = "400 Bad Request";
+//			display("400", "html", responseString.length(), out, time);
+//			out.write(responseString.getBytes());
+//			return;
+//		}
 
 		if(method.equals("GET")) {
 			try {
-				if((!inString.contains("HTTP/1.0")) && (!inString.contains("HTTP/1.1"))) {
-					System.out.println(" (Dropping connection)");
-					 throw new IOException();
-				}
+                               
+//				if((!inString.contains("HTTP/1.0")) && (!inString.contains("HTTP/1.1"))) {
+//					System.out.println(" (Dropping connection)");
+//					 throw new IOException();
+//				}
 				// Open file
 				byte[] fileBytes = null;
 				//if(file.endsWith("/"))
@@ -77,119 +79,135 @@ public final class MyWebServer {
                 System.out.println("file path is: "+FILEPATH+file);
 				File fileObject = new File (FILEPATH+file);
 
-				if(fileObject.exists() &&(fileObject.canRead()== false)){
-					String responseString = " 403 forbidden";
-					display("403", "html", responseString.length(), out,time);
-					out.write(responseString.getBytes());
-					return;
-
-				}
+//				if(fileObject.exists() &&(fileObject.canRead()== false)){
+//					String responseString = " 403 forbidden";
+//					display("403", "html", responseString.length(), out,time);
+//					out.write(responseString.getBytes());
+//					return;
+//
+//				}
+                                long checkDoneTime = System.nanoTime();
 				InputStream is = new FileInputStream(FILEPATH+file);
 				fileBytes = new byte[is.available()];
 				is.read(fileBytes);
+                                long readDoneTime = System.nanoTime();
 				display("200", mime, fileBytes.length, out,time);
 				out.write(fileBytes);
+                                long writeDoneTime = System.nanoTime();
 				System.out.println(file);
+                                long totalTime = writeDoneTime - startTime;
+                                long checkTime = checkDoneTime - startTime;
+                                long readTime = readDoneTime - checkDoneTime;
+                                long writeTime = writeDoneTime - readDoneTime;
+                                long checkPercent = checkTime*100/totalTime;
+                                long readPercent = readTime*100/totalTime;
+                                long writePercent = writeTime*100/totalTime;
+                                
+                                System.out.println("Check: "+checkPercent+"%");
+                                System.out.println("Read: "+readPercent+"%");
+                                System.out.println("Write: "+writePercent+"%");
 
 			} catch(FileNotFoundException e) {
+                            //e.printStackTrace();
+                            System.out.println("File not found");
 				// Try to use 404.html
-				try {
-					byte[] fileBytes = null;
-					InputStream is = new FileInputStream(FILEPATH+"404.html");
-					fileBytes = new byte[is.available()];
-					is.read(fileBytes);
-					display("404", "html", fileBytes.length, out,time);
-					out.write(fileBytes);
-				} catch(FileNotFoundException e2) {
-					String responseString = "404 File Not Found";
-                                    
-					display("404", "html", responseString.length(), out,time);
-					out.write(responseString.getBytes());
-                                        out.write(inString.getBytes());
-				}
-			} catch(IOException e3) {
-				String responseString = " 400 Bad Request";
-				display("400", "html", responseString.length(), out,time);
-				out.write(responseString.getBytes());
-			}
+//				try {
+//					byte[] fileBytes = null;
+//					InputStream is = new FileInputStream(FILEPATH+"404.html");
+//					fileBytes = new byte[is.available()];
+//					is.read(fileBytes);
+//					display("404", "html", fileBytes.length, out,time);
+//					out.write(fileBytes);
+//				} catch(FileNotFoundException e2) {
+//					String responseString = "404 File Not Found";
+//                                    
+//					display("404", "html", responseString.length(), out,time);
+//					out.write(responseString.getBytes());
+//                                        out.write(inString.getBytes());
+//				}
+			} 
 
 		}
 
 	}
 
-	private static class WorkerRunnable implements Runnable {
-
-		protected Socket socket = null;
-
-		BufferedReader in;
-		DataOutputStream out;
-		String inString;
-		String time;
-
-		public WorkerRunnable(Socket connectionSocket) throws Exception {
-
-			this.socket = connectionSocket;
-			this.in = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
-			this.out = new DataOutputStream(this.socket.getOutputStream());
-
-			this.inString = this.in.readLine();
-			System.out.print("Request are :" + this.inString );
-			Calendar cal = Calendar.getInstance();
-			cal.getTime();
-			SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
-			time = "[" + sdf.format(cal.getTime()) + "] ";
-			System.out.print(time + this.socket.getInetAddress().toString() + " " + this.inString);
-		}
-
-		public void run() {
-
-
-			try{
-				if(this.inString != null)
-					response(this.inString, this.out,this.time);
-				System.out.println("connectionSocket");
-
-				this.out.flush();
-				this.out.close();
-				this.in.close();
-
-			} catch (Exception e) {
-				System.out.println("Error flushing and closing");
-			}
-		}
-	}
+	
 
 	public static void main(String args[]) throws Exception {
 
-//		int i=0;
-//		for (i=0; i<args.length; i++) {
-//			System.out.println(" args :" + args[i]);
-//
-//		}
-//		PORT = Integer.valueOf(args[3]);
-//		FILEPATH = args[1];
-//		ServerSocket serverSocket = new ServerSocket(PORT);
-//
-//		System.out.println("Listening to connection..");
-//
-//                requestManager manager = new requestManager();
-//                manager.start();
-//		for(;;) {
-//                    Socket connectionSocket = serverSocket.accept();
-//                    Thread t = new Thread(new WorkerRunnable(connectionSocket));
-//                    requestTask task = new requestTask(System.nanoTime(),"just a name",t,1);
-//                    //t.start();
-//                    System.out.println("This step is reached");
-//                    System.out.println("Current thread ID: "+t.getId());
-//                    manager.insertTask(task);
-//
-//		}
-                Lock lock = new ReentrantLock();
-                printStuff t = new printStuff(lock);
-                requestTask task = new requestTask(System.nanoTime(),"print stuff task",t,1);
+		int i=0;
+		for (i=0; i<args.length; i++) {
+			System.out.println(" args :" + args[i]);
+
+		}
+		PORT = Integer.valueOf(args[3]);
+		FILEPATH = args[1];
+		ServerSocket serverSocket = new ServerSocket(PORT);
+
+		System.out.println("Listening to connection..");
+
                 requestManager manager = new requestManager();
                 manager.start();
-                manager.insertTask(task);
+		for(;;) {
+                    Socket connectionSocket = serverSocket.accept();
+                    
+                    
+                    //WorkerThread t = new WorkerThread(connectionSocket,FILEPATH);
+                    //requestTask task = new requestTask(System.nanoTime(),"just a name",t,1);
+                    //t.start();
+                    //System.out.println("Current thread ID: "+t.getId());
+                    
+                    
+                    BufferedReader in = new BufferedReader(new InputStreamReader(connectionSocket.getInputStream()));
+                    DataOutputStream out = new DataOutputStream(connectionSocket.getOutputStream());
+                    String inString = in.readLine();
+                    System.out.println("Request are :" + inString );
+                    Calendar cal = Calendar.getInstance();
+                    cal.getTime();
+                    SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+                    String time = "[" + sdf.format(cal.getTime()) + "] ";
+                    System.out.print(time + connectionSocket.getInetAddress().toString() + " " + inString);
+                    
+                    if(inString != null){
+
+
+                        String method = inString.substring(0, inString.indexOf("/")-1);
+                        String file = inString.substring(inString.indexOf("/")+1, inString.lastIndexOf("/")-5);
+                        String mime = file.substring(file.indexOf(".")+1);
+                        if(method.equals("GET")) {
+                            try {
+                                    byte[] fileBytes = null;
+                                    System.out.println("file path is: "+FILEPATH+file);
+                                    File fileObject = new File (FILEPATH+file);
+                                    InputStream is = new FileInputStream(FILEPATH+file);
+                                    fileBytes = new byte[is.available()];
+                                    is.read(fileBytes);
+                                    
+                                    InterruptibleRequestHandler task = new InterruptibleRequestHandler(fileBytes,out);
+                                    
+                                    
+                                    manager.insertTask(task);
+                                    
+                            }catch(Exception e){
+                                e.printStackTrace();
+                            }
+                        }
+                        
+                    }
+                    //in.close();
+                    
+                    
+                    
+
+
+		}
+                //Thread t = new Thread (new printStuff());
+                //requestTask task = new requestTask(System.nanoTime(),"print stuff task",new printStuff(),1);
+                
+                
+//                requestManager manager = new requestManager();
+//                manager.start();
+//                manager.insertTask(task);
 	}
         
 
